@@ -19,7 +19,7 @@ def init_tables():
 	signer VARCHAR(255) NOT NULL,
    	checkpoint INTEGER NOT NULL,
 	signed_in TIMESTAMP NOT NULL,
-	PRIMARY KEY(signer,checkpoint,signed_in)
+	PRIMARY KEY(signer,checkpoint)
     );
     '''
    
@@ -28,7 +28,7 @@ def init_tables():
 	signer VARCHAR(255) NOT NULL,
    	block INTEGER NOT NULL,
 	signed_in TIMESTAMP NOT NULL,
-	PRIMARY KEY(signer,block,signed_in)
+	PRIMARY KEY(signer,block)
     );
     '''
 
@@ -52,18 +52,24 @@ def datetime_now():
     return str(datetime.datetime.now())
 
 def persistCheckpoint(signer,checkpoint):
-    connection = sqlite3.connect('database.db')
-    cursor = connection.cursor()
-    cursor.execute("insert into checkpoints values (?, ?, ?)", (signer,checkpoint,datetime_now()) )
-    cursor.connection.commit()
-    connection.close()
+    try:
+        connection = sqlite3.connect('database.db')
+        cursor = connection.cursor()
+        cursor.execute("insert into checkpoints values (?, ?, ?)", (signer,checkpoint,datetime_now()) )
+        cursor.connection.commit()
+        connection.close()
+    except Exception as e:
+        print(e)
 
 def persistBlock(signer,block):
-    connection = sqlite3.connect('database.db')
-    cursor = connection.cursor()
-    cursor.execute("insert into blocks (signer,block,signed_in) values (?, ?, ?)", (signer,block,datetime_now()) )
-    cursor.connection.commit()
-    connection.close()
+    try:
+        connection = sqlite3.connect('database.db')
+        cursor = connection.cursor()
+        cursor.execute("insert into blocks (signer,block,signed_in) values (?, ?, ?)", (signer,block,datetime_now()) )
+        cursor.connection.commit()
+        connection.close()
+    except Exception as e:
+        print(e)
 
 def charge_validators():
     validators = []
@@ -72,7 +78,7 @@ def charge_validators():
     cursor = connection.cursor()
     cursor.execute("SELECT * FROM validators;")
     for validator in cursor.fetchall():
-        print(validator)
+        #print(validator)
         validator_instance={
             'name':validator[1],
             'validator_id':validator[2],
@@ -95,21 +101,30 @@ class getNetworkBlockDataThread(threading.Thread):
 
     def run(self):
         print('RUNNING GET NETWORK BLOCK DATA: '+ str(self.block))
+    
+        
         r = requests.get('https://heimdall.api.matic.network/blocks/'+str(self.block))
         signers = r.json()['block']['last_commit']['precommits']
+        #print(signers)
         validators_db = charge_validators()
         validators_set = {}
 
         for signer in signers:
-            key='0x'+str(signer['validator_address']).lower()
-            print(key)
-            validators_set[key]=True
-        print(validators_set)
+            try: 
+                key='0x'+str(signer['validator_address']).lower()
+                
+                #print(key)
+                validators_set[key]=True
+            except Exception as e:
+                print(e)
+        #print(validators_set)
         for validator in validators_db:
-            print(validators_set.get(validator['signer']))
+            #print(validator)
             if validators_set.get(validator['signer'])==None:
                 persistBlockTread = persistBlockDataThread(validator['signer'],self.block,datetime_now())
                 persistBlockTread.start()
+        
+
         
         
 
@@ -127,13 +142,21 @@ class getNetworkCheckpointDataThread(threading.Thread):
         validators_set = {}
 
         for signer in signers:
-            validators_set[signer['signerAddress']]=signer['hasSigned']
-        '''
-        '''
-        for validator in validators_db:
-            if bool(validators_set[validator['signer']])==False:
-                persistCheckpointTread = persistCheckpointDataThread(validator['signer'],self.checkpoint,datetime_now())
-                persistCheckpointTread.start()
+            try:
+                #print("SIGNER: ",signer['signerAddress'], signer['hasSigned'])
+                validators_set[signer['signerAddress']]=signer['hasSigned']
+            except Exception as e:
+                print(e)
+            
+        for validator in validators_db:            
+            try:                           
+                if validators_set[validator['signer']]==False:
+                    print("Validators Signer:",signer['signerAddress'])
+                    print("Assinou:",validators_set[validator['signer']])
+                    persistCheckpointTread = persistCheckpointDataThread(validator['signer'],self.checkpoint,datetime_now())
+                    persistCheckpointTread.start()
+            except Exception as e:
+                print(e)
 
 class persistCheckpointDataThread(threading.Thread):
     def __init__(self,signer,checkpoint,signed_in):
@@ -167,63 +190,29 @@ class collectNetworkInfoDataThread(threading.Thread):
         print("| Start Collect block Thread |")        
         while(RUNNING_SCRIPT):  
             #GET LAST INFO FROM POLYGON NETWORK
-            r = requests.get('https://heimdall.api.matic.network/checkpoints/count')
-            last_block = r.json()['height']
-            last_checkpoint = r.json()['result']['result']           
+            try:
+                r = requests.get('https://heimdall.api.matic.network/checkpoints/count')
+                last_block = r.json()['height']
+                last_checkpoint = r.json()['result']['result']           
+                
+                print('t='+datetime_now()+" type=Info message=NETWORK_COLLECTED_CHECKPOINT_"+str(last_checkpoint))
+                if self.previous_checkpoint < int(last_checkpoint):
+                    print('t='+datetime_now()+" type=Info message=NETWORK_CHANGE_TO_CHECKPOINT_"+str(last_checkpoint))
+                    print('RUNNING THREAD GET CHECKPOINT DATA')
+                    self.previous_checkpoint = int(last_checkpoint)
+                    getCheckpointThread = getNetworkCheckpointDataThread(last_checkpoint)
+                    getCheckpointThread.start()
+                print('t='+datetime_now()+" type=Info message=NETWORK_COLLECTED_BLOCK_"+str(last_block))
+                if self.previous_block < int(last_block):
+                    print('RUNNING THREAD GET BLOCK DATA')
+                    print('t='+datetime_now()+" type=Info message=NETWORK_CHANGE_TO_BLOCK_"+str(last_block))
+                    self.previous_block = int(last_block)
+                    getBlockThread = getNetworkBlockDataThread(last_block)
+                    getBlockThread.start()         
             
-
-            if self.previous_checkpoint < int(last_checkpoint):
-                print('t='+datetime_now()+" type=Info message=NETWORK_CHANGE_TO_CHECKPOINT_"+str(last_checkpoint))
-                print('RUNNING THREAD GET CHECKPOINT DATA')
-                self.previous_checkpoint = int(last_checkpoint)
-                getCheckpointThread = getNetworkCheckpointDataThread(last_checkpoint)
-                getCheckpointThread.start()
-
-            if self.previous_block < int(last_block):
-                print('RUNNING THREAD GET BLOCK DATA')
-                print('t='+datetime_now()+" type=Info message=NETWORK_CHANGE_TO_BLOCK_"+str(last_block))
-                self.previous_block = int(last_block)
-                getBlockThread = getNetworkBlockDataThread(last_block)
-                getBlockThread.start()
-            
-            '''
-            block_signed=False
-            for signature in signatures_blocks:
-                if signature['validator_address']==networkObject['signer']:
-                    print('t='+str(datetime.datetime.now())+ ' type=Info signed=true block='+str(block)+ ' network='+networkObject['name'] + ' signed_in=' + signature['timestamp'] )
-                    block = block
-                    network = networkObject['name']
-                    signed = True
-                    signed_in  = signature['timestamp']
-                    #row_timestamp = datetime.datetime.strptime(signature['timestamp'],'%d/%m/%Y').__str__()
-                    try:
-                        
-                        connection = sqlite3.connect('database.db')
-                        cursor = connection.cursor()
-                        cursor.execute("insert into blocks values (?, ?, ?, ?)", (network,block,signed,signed_in) )
-                        cursor.connection.commit()
-                        connection.close()
-                       
-                    except Exception as e:
-                        print('t='+str(datetime.datetime.now())+" type=Error message="+str(e))
-                    block_signed=True
-            
-            if(block_signed==False):
-                print('t='+str(datetime.datetime.now())+ ' type=Info signed=false block='+str(block)+ ' network='+networkObject['name'] + ' signed_in=' + block_time )
-                block = block
-                network = networkObject['name']
-                signed = False
-                signed_in = block_time
-                try:
-                    connection = sqlite3.connect('database.db')
-                    cursor = connection.cursor()
-                    cursor.execute("insert into blocks values (?, ?, ?, ?)", (network,block,signed,signed_in) )
-                    cursor.connection.commit()
-                    connection.close()
-                except Exception as e:
-                    print('t='+str(datetime.datetime.now())+" type=Error message="+str(e))
-            '''    
-            time.sleep(1)
+                time.sleep(1)
+            except Exception as e:
+                print(e)
         print("| Finish Thread |")
 
 
