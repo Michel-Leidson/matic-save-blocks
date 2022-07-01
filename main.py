@@ -140,23 +140,29 @@ class getNetworkCheckpointDataThread(threading.Thread):
         signers = r.json()['result']
         validators_db = charge_validators()
         validators_set = {}
-
+        checkpointsSignersNumber=0
         for signer in signers:
             try:
+                if signer['hasSigned']==True:
+                    checkpointsSignersNumber=checkpointsSignersNumber + 1
                 #print("SIGNER: ",signer['signerAddress'], signer['hasSigned'])
                 validators_set[signer['signerAddress']]=signer['hasSigned']
             except Exception as e:
                 print(e)
+        print("Number of signers: ",checkpointsSignersNumber)
+        if checkpointsSignersNumber > 50:
             
-        for validator in validators_db:            
-            try:                           
-                if validators_set[validator['signer']]==False:
-                    print("Validators Signer:",signer['signerAddress'])
-                    print("Assinou:",validators_set[validator['signer']])
-                    persistCheckpointTread = persistCheckpointDataThread(validator['signer'],self.checkpoint,datetime_now())
-                    persistCheckpointTread.start()
-            except Exception as e:
-                print(e)
+            for validator in validators_db:            
+                try:                           
+                    if validators_set[validator['signer']]==False:
+                        print("Validators Signer:",signer['signerAddress'])
+                        print("Assinou:",validators_set[validator['signer']])
+                        persistCheckpointTread = persistCheckpointDataThread(validator['signer'],self.checkpoint,datetime_now())
+                        persistCheckpointTread.start()
+                except Exception as e:
+                    print(e)
+        else:
+            previous_checkpoint = previous_checkpoint - 1
 
 class persistCheckpointDataThread(threading.Thread):
     def __init__(self,signer,checkpoint,signed_in):
