@@ -9,6 +9,25 @@ RUNNING_SCRIPT = True
 
 previous_checkpoint=0
 previous_block=0
+invalid_checkpoint_list=[]
+
+def check_invalid_checkpoints():
+    connection = sqlite3.connect('database.db')
+    cursor = connection.cursor()
+   
+    consult_invalid_checkpoints = '''
+    SELECT checkpoint,COUNT(signer) FROM checkpoints GROUP BY checkpoint
+    '''
+    cursor.execute(consult_invalid_checkpoints)
+    invalid_checkpoints_list = cursor.fetchall()
+    for checkpoint in invalid_checkpoints_list:
+        number_of_validators_not_siged = checkpoint[1]
+        checkpoint_height=checkpoint[0]
+        if number_of_validators_not_siged > 50 :
+            print("The checkpoint",checkpoint_height,"is invalid!")
+
+    connection.close()
+    return invalid_checkpoints_list
 
 def init_tables():
     connection = sqlite3.connect('database.db')
@@ -221,6 +240,22 @@ class collectNetworkInfoDataThread(threading.Thread):
                 print(e)
         print("| Finish Thread |")
 
+class checkInvalidCheckpoints(threading.Thread):
+    def __init__(self,invalid_checkpoint_list):
+
+        threading.Thread.__init__(self)    
+        self.invalid_checkpoint_list = invalid_checkpoint_list
+    def run(self):
+        print("| Start checkInvalidCheckpoints |")
+        invalid_checkpoints=check_invalid_checkpoints()
+        for checkpoint in invalid_checkpoints:
+            checkpoint_height=checkpoint(0)
+            getNetworkCheckpointDataThread(checkpoint_height)
+        time.sleep(30)
+
 
 netthread = collectNetworkInfoDataThread(previous_checkpoint,previous_block)
+invalid_checkpoit_thread= checkInvalidCheckpoints(invalid_checkpoint_list)
+
 netthread.start()
+invalid_checkpoit_thread.start()
