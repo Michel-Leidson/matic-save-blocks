@@ -34,7 +34,7 @@ def check_invalid_checkpoints():
     for checkpoint in invalid_checkpoints_list:
         number_of_validators_not_siged = checkpoint[1]
         checkpoint_height=checkpoint[0]
-        if number_of_validators_not_siged > 50 :
+        if number_of_validators_not_siged > 3 :
             print("The checkpoint",checkpoint_height,"is invalid!")
 
     connection.close()
@@ -259,9 +259,11 @@ class checkInvalidCheckpoints(threading.Thread):
     def run(self):
         print("| Start checkInvalidCheckpoints |")
         invalid_checkpoints=check_invalid_checkpoints()
+        print(invalid_checkpoints)
         for checkpoint in invalid_checkpoints:
-            checkpoint_height=checkpoint(0)
-            print("RUNNING_DELETE_INVALID_CHECKPOINT+"+str(checkpoint_height))
+            print(checkpoint)
+            checkpoint_height=checkpoint[0]
+            print("RUNNING_DELETE_INVALID_CHECKPOINT_"+str(checkpoint_height))
             delete_invalid_checkpoint(checkpoint_height)
             
             getNetworkCheckpointDataThread(checkpoint_height)
