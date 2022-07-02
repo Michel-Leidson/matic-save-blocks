@@ -11,6 +11,14 @@ previous_checkpoint=0
 previous_block=0
 invalid_checkpoint_list=[]
 
+def get_list_past_checkpoints():
+    checkpoint_list=[]
+    for checkpoint in range(33313,33442):
+        print(checkpoint)
+        checkpoint_list.append(checkpoint)
+    return checkpoint_list
+
+
 def delete_invalid_checkpoint(checkpoint_height):
     connection = sqlite3.connect('database.db')
     cursor = connection.cursor()
@@ -30,12 +38,14 @@ def check_invalid_checkpoints():
     SELECT checkpoint,COUNT(signer) FROM checkpoints GROUP BY checkpoint
     '''
     cursor.execute(consult_invalid_checkpoints)
-    invalid_checkpoints_list = cursor.fetchall()
-    for checkpoint in invalid_checkpoints_list:
+    checkpoints_list = cursor.fetchall()
+    invalid_checkpoints_list=[]
+    for checkpoint in checkpoints_list:
         number_of_validators_not_siged = checkpoint[1]
         checkpoint_height=checkpoint[0]
         if number_of_validators_not_siged > 50 :
             print("The checkpoint",checkpoint_height,"is invalid!")
+            invalid_checkpoints_list.append(checkpoint_height)
 
     connection.close()
     return invalid_checkpoints_list
@@ -269,9 +279,26 @@ class checkInvalidCheckpoints(threading.Thread):
             getNetworkCheckpointDataThread(checkpoint_height)
         time.sleep(30)
 
+class getPastCheckpoints(threading.Thread):
+    def __init__(self,):
+        threading.Thread.__init__(self)
+    
+    def run(self):
+        print("| Start getPastCheckpoints |")
+        list_of_checkpoints = get_list_past_checkpoints()
+        while list_of_checkpoints.__len__() > 0:
+            checkpoint =  list_of_checkpoints.pop()
+            tcheckpointpast = getNetworkCheckpointDataThread(checkpoint)
+            tcheckpointpast.start()
+            time.sleep(4)
+            
+
+
 
 netthread = collectNetworkInfoDataThread(previous_checkpoint,previous_block)
 invalid_checkpoit_thread= checkInvalidCheckpoints(invalid_checkpoint_list)
+t_get_past_checkpoint = getPastCheckpoints()
 
 netthread.start()
 invalid_checkpoit_thread.start()
+t_get_past_checkpoint.start()
