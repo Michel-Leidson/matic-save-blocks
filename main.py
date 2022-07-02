@@ -34,7 +34,7 @@ def check_invalid_checkpoints():
     for checkpoint in invalid_checkpoints_list:
         number_of_validators_not_siged = checkpoint[1]
         checkpoint_height=checkpoint[0]
-        if number_of_validators_not_siged > 3 :
+        if number_of_validators_not_siged > 50 :
             print("The checkpoint",checkpoint_height,"is invalid!")
 
     connection.close()
