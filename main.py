@@ -11,6 +11,17 @@ previous_checkpoint=0
 previous_block=0
 invalid_checkpoint_list=[]
 
+def delete_invalid_checkpoint(checkpoint_height):
+    connection = sqlite3.connect('database.db')
+    cursor = connection.cursor()
+   
+    delete_invalid_checkpoints = f'''
+    DELETE FROM checkpoints WHERE checkpoint = {checkpoint_height}
+    '''
+    cursor.executescript(delete_invalid_checkpoints)    
+    connection.close()
+
+
 def check_invalid_checkpoints():
     connection = sqlite3.connect('database.db')
     cursor = connection.cursor()
@@ -250,6 +261,9 @@ class checkInvalidCheckpoints(threading.Thread):
         invalid_checkpoints=check_invalid_checkpoints()
         for checkpoint in invalid_checkpoints:
             checkpoint_height=checkpoint(0)
+            print("RUNNING_DELETE_INVALID_CHECKPOINT+"+str(checkpoint_height))
+            delete_invalid_checkpoint(checkpoint_height)
+            
             getNetworkCheckpointDataThread(checkpoint_height)
         time.sleep(30)
 

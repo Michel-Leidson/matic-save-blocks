@@ -19,4 +19,15 @@ def check_invalid_checkpoints():
     connection.close()
     return invalid_checkpoints_list
 
+def delete_invalid_checkpoint(checkpoint_height):
+    connection = sqlite3.connect('database.db')
+    cursor = connection.cursor()
+   
+    delete_invalid_checkpoints = f'''
+    DELETE FROM checkpoints WHERE checkpoint = {checkpoint_height}
+    '''
+    cursor.executescript(delete_invalid_checkpoints)    
+    connection.close()
+
 check_invalid_checkpoints()
+delete_invalid_checkpoint(33390)
