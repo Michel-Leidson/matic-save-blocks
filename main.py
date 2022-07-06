@@ -101,11 +101,11 @@ def persistCheckpoint(signer,checkpoint):
     except Exception as e:
         print(e)
 
-def persistBlock(signer,block):
+def persistBlock(signer,block,signed_in):
     try:
         connection = sqlite3.connect('database.db')
         cursor = connection.cursor()
-        cursor.execute("insert into blocks (signer,block,signed_in) values (?, ?, ?)", (signer,block,datetime_now()) )
+        cursor.execute("insert into blocks (signer,block,signed_in) values (?, ?, ?)", (signer,block,signed_in) )
         cursor.connection.commit()
         connection.close()
     except Exception as e:
@@ -145,6 +145,7 @@ class getNetworkBlockDataThread(threading.Thread):
         
         r = requests.get('https://heimdall.api.matic.network/blocks/'+str(self.block))
         signers = r.json()['block']['last_commit']['precommits']
+        block_time = r.json()['block']['header']['time']
         #print(signers)
         validators_db = charge_validators()
         validators_set = {}
@@ -161,7 +162,7 @@ class getNetworkBlockDataThread(threading.Thread):
         for validator in validators_db:
             #print(validator)
             if validators_set.get(validator['signer'])==None:
-                persistBlockTread = persistBlockDataThread(validator['signer'],self.block,datetime_now())
+                persistBlockTread = persistBlockDataThread(validator['signer'],self.block,block_time)
                 persistBlockTread.start()
         
 
@@ -225,7 +226,7 @@ class persistBlockDataThread(threading.Thread):
 
     def run(self):
         print('RUNNING PERSIST MISSED BLOCK '+ str(self.block) + ' ' +  str(self.signer))
-        persistBlock(self.signer,self.block)
+        persistBlock(self.signer,self.block,self.signed_in)
 
 class collectNetworkInfoDataThread(threading.Thread):
     def __init__(self,previous_checkpoint,previous_block):
