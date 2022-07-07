@@ -1,3 +1,4 @@
+from pickle import FALSE
 import requests
 import threading
 import datetime
@@ -91,11 +92,11 @@ init_tables()
 def datetime_now():
     return str(datetime.datetime.now())
 
-def persistCheckpoint(signer,checkpoint):
+def persistCheckpoint(signer,checkpoint,signed_in):
     try:
         connection = sqlite3.connect('database.db')
         cursor = connection.cursor()
-        cursor.execute("insert into checkpoints values (?, ?, ?)", (signer,checkpoint,datetime_now()) )
+        cursor.execute("insert into checkpoints values (?, ?, ?)", (signer,checkpoint,signed_in) )
         cursor.connection.commit()
         connection.close()
     except Exception as e:
@@ -182,6 +183,7 @@ class getNetworkCheckpointDataThread(threading.Thread):
         validators_db = charge_validators()
         validators_set = {}
         checkpointsSignersNumber=0
+        checkpointTime=datetime_now()
         for signer in signers:
             try:
                 if signer['hasSigned']==True:
@@ -192,13 +194,24 @@ class getNetworkCheckpointDataThread(threading.Thread):
                 print(e)
         print("Number of signers: ",checkpointsSignersNumber)
         if checkpointsSignersNumber > 50:
+            getFirstSigner =False
             
             for validator in validators_db:            
-                try:                           
+                try:
+                    if validators_set[validator['signer']]==True and getFirstSigner==False:
+                        try:
+                            getFirstSigner=True
+                            validatorId=validator['validator_id']
+                            url=f'''https://sentinel.matic.network/api/v2/validators/{validatorId}/checkpoints-signed?limit=1&offset=0'''
+                            r2 = requests.get(url)
+                            checkpointTime=r2.json()['result'][0]['timestamp']
+                            checkpointTime=datetime.datetime.fromtimestamp(checkpointTime)
+                            print("CHECKPOINT TIME",checkpointTime.strftime("%Y-%m-%d %H:%M:%S"),"BASED IN VALIDATOR",validator['name'])
+                        except Exception as e:
+                            print(e)
+
                     if validators_set[validator['signer']]==False:
-                        print("Validators Signer:",signer['signerAddress'])
-                        print("Assinou:",validators_set[validator['signer']])
-                        persistCheckpointTread = persistCheckpointDataThread(validator['signer'],self.checkpoint,datetime_now())
+                        persistCheckpointTread = persistCheckpointDataThread(validator['signer'],self.checkpoint,checkpointTime)
                         persistCheckpointTread.start()
                 except Exception as e:
                     print(e)
@@ -215,7 +228,7 @@ class persistCheckpointDataThread(threading.Thread):
 
     def run(self):
         print('RUNNING PERSIST MISSED CHECKPOINT '+ str(self.checkpoint) + ' ' +  str(self.signer))
-        persistCheckpoint(self.signer,self.checkpoint)
+        persistCheckpoint(self.signer,self.checkpoint,self.signed_in)
 
 class persistBlockDataThread(threading.Thread):
     def __init__(self,signer,block,signed_in):
@@ -242,14 +255,14 @@ class collectNetworkInfoDataThread(threading.Thread):
                 last_block = r.json()['height']
                 last_checkpoint = r.json()['result']['result']           
                 
-                print('t='+datetime_now()+" type=Info message=NETWORK_COLLECTED_CHECKPOINT_"+str(last_checkpoint))
+                #print('t='+datetime_now()+" type=Info message=NETWORK_COLLECTED_CHECKPOINT_"+str(last_checkpoint))
                 if self.previous_checkpoint < int(last_checkpoint):
                     print('t='+datetime_now()+" type=Info message=NETWORK_CHANGE_TO_CHECKPOINT_"+str(last_checkpoint))
                     print('RUNNING THREAD GET CHECKPOINT DATA')
                     self.previous_checkpoint = int(last_checkpoint)
                     getCheckpointThread = getNetworkCheckpointDataThread(last_checkpoint)
                     getCheckpointThread.start()
-                print('t='+datetime_now()+" type=Info message=NETWORK_COLLECTED_BLOCK_"+str(last_block))
+                #print('t='+datetime_now()+" type=Info message=NETWORK_COLLECTED_BLOCK_"+str(last_block))
                 if self.previous_block < int(last_block):
                     print('RUNNING THREAD GET BLOCK DATA')
                     print('t='+datetime_now()+" type=Info message=NETWORK_CHANGE_TO_BLOCK_"+str(last_block))
@@ -298,8 +311,8 @@ class getPastCheckpoints(threading.Thread):
 
 netthread = collectNetworkInfoDataThread(previous_checkpoint,previous_block)
 invalid_checkpoit_thread= checkInvalidCheckpoints(invalid_checkpoint_list)
-t_get_past_checkpoint = getPastCheckpoints()
+#t_get_past_checkpoint = getPastCheckpoints()
 
 netthread.start()
 invalid_checkpoit_thread.start()
-t_get_past_checkpoint.start()
+#t_get_past_checkpoint.start()
