@@ -7,12 +7,12 @@ cursor = connection.cursor()
 query = '''
     SELECT v.name,c."Date checkpoint",c."Checkpoints number","[" || "'" || v.name || "'," || c."checkpoints number" || "]" as "validator-checkpoint"
     FROM
-    (SELECT signer,DATE(checkpoints.signed_in) as "Date checkpoint",COUNT(checkpoints.checkpoint) as "Checkpoints number" FROM checkpoints GROUP BY "Date checkpoint") c
+    (SELECT signer,DATE(checkpoints.signed_in) as "Date checkpoint",COUNT(checkpoints.checkpoint) as "Checkpoints number" FROM checkpoints GROUP BY signer,"Date checkpoint") c
     LEFT JOIN
     validators v
     ON
     v.signer=c.signer
-    ORDER BY name,c."Date Checkpoint";
+    ORDER BY name,c."Date Checkpoint" DESC;
     '''
 
 rows = cursor.execute(query).fetchall()

@@ -7,12 +7,12 @@ cursor = connection.cursor()
 query = '''
     SELECT v.name,b."Date block",b."Blocks number","[" || "'" || v.name || "'," || b."Blocks number" || "]" as "validator-block"
     FROM
-    (SELECT signer,DATE(blocks.signed_in) as "Date block",COUNT(blocks.block) as "Blocks number" FROM blocks GROUP BY "Date block") b
+    (SELECT signer,DATE(blocks.signed_in) as "Date block",COUNT(blocks.block) as "Blocks number" FROM blocks GROUP BY signer,"Date block") b
     LEFT JOIN
     validators v
     ON
     v.signer=b.signer
-    ORDER BY name,b."Date block";
+    ORDER BY name,b."Date block" DESC;
     '''
 
 rows = cursor.execute(query).fetchall()
