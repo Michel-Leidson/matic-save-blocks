@@ -1,4 +1,3 @@
-from pickle import FALSE
 import requests
 import threading
 import datetime
@@ -18,6 +17,23 @@ def get_list_past_checkpoints():
         print(checkpoint)
         checkpoint_list.append(checkpoint)
     return checkpoint_list
+
+
+def has_checkpoint_in_db(checkpoint):
+    connection = sqlite3.connect('database.db')
+    cursor = connection.cursor()
+   
+    consult_checkpoint_in_db = f'''
+    SELECT checkpoint FROM checkpoints WHERE checkpoint = {checkpoint}
+    '''
+    cursor.execute(consult_checkpoint_in_db)
+    checkpoints_list = cursor.fetchall()
+       
+    connection.close()
+    if len(checkpoints_list) > 0 :
+        return True
+    
+    return False
 
 
 def delete_invalid_checkpoint(checkpoint_height):
@@ -252,16 +268,38 @@ class collectNetworkInfoDataThread(threading.Thread):
             #GET LAST INFO FROM POLYGON NETWORK
             try:
                 r = requests.get('https://heimdall.api.matic.network/checkpoints/count')
-                last_block = r.json()['height']
                 last_checkpoint = r.json()['result']['result']           
+                last_block=r.json()['height']
+                
+                    
+                if self.previous_checkpoint < int(last_checkpoint):
+
+                    r3 = requests.get('https://sentinel.matic.network/api/v2/monitor/checkpoint-signatures/checkpoint/'+str(last_checkpoint))
+                    signers = r3.json()['result']
+                    checkpointsSignersNumber=0
+                    for signer in signers:
+                        try:
+                            if signer['hasSigned']==True:
+                                checkpointsSignersNumber=checkpointsSignersNumber + 1
+                        except Exception as e:
+                            print(e)
+                    print("Number of signers: ",checkpointsSignersNumber)
+                    if checkpointsSignersNumber > 50:
+                        print('t='+datetime_now()+" type=Info message=NETWORK_CHANGE_TO_CHECKPOINT_"+str(last_checkpoint))
+                        print('RUNNING THREAD GET CHECKPOINT DATA')
+                        if has_checkpoint_in_db(int(self.previous_checkpoint)) == False and int(self.previous_checkpoint) != 0:
+                            print("RUNNING THREAD GET PREVIOUS CHECKPOINT DATA")
+                            getPreviousCheckpointThread = getNetworkCheckpointDataThread(self.previous_checkpoint)
+                            getPreviousCheckpointThread.start()
+                        else:
+                            self.previous_checkpoint = int(last_checkpoint)
+                            getCheckpointThread = getNetworkCheckpointDataThread(last_checkpoint)
+                            getCheckpointThread.start()
+                    else:
+                        print("THE SIGNERS MINIMUM HAS NOT BEEN REACHED")           
                 
                 #print('t='+datetime_now()+" type=Info message=NETWORK_COLLECTED_CHECKPOINT_"+str(last_checkpoint))
-                if self.previous_checkpoint < int(last_checkpoint):
-                    print('t='+datetime_now()+" type=Info message=NETWORK_CHANGE_TO_CHECKPOINT_"+str(last_checkpoint))
-                    print('RUNNING THREAD GET CHECKPOINT DATA')
-                    self.previous_checkpoint = int(last_checkpoint)
-                    getCheckpointThread = getNetworkCheckpointDataThread(last_checkpoint)
-                    getCheckpointThread.start()
+                
                 #print('t='+datetime_now()+" type=Info message=NETWORK_COLLECTED_BLOCK_"+str(last_block))
                 if self.previous_block < int(last_block):
                     print('RUNNING THREAD GET BLOCK DATA')
