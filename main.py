@@ -13,7 +13,7 @@ invalid_checkpoint_list=[]
 
 def get_list_past_checkpoints():
     checkpoint_list=[]
-    for checkpoint in range(33313,33442):
+    for checkpoint in range(5313,12000):
         print(checkpoint)
         checkpoint_list.append(checkpoint)
     return checkpoint_list
