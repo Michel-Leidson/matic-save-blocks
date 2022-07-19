@@ -61,7 +61,7 @@ sudo apt install sqlite3
 sqlite3 database.db
 ```
 
-### 9 - Add the networks you want to monitor, the signer key and the query api url. Type .quit to exit sqlite3 application
+### 9 - Add the validators you want to monitor, the subscriber key, and the Query API URL. Type .quit to exit the sqlite3 application
 
 ```
 sqlite> INSERT INTO validators (name,validator_id,signer) VALUES('StakePool',32,'0x02f70172f7f490653665c9bfac0666147c8af1f5');
