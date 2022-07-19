@@ -45,6 +45,8 @@ python3 main.py
 ```
 ### If everything is working fine you will see records like these
 
+(https://github.com/Michel-Leidson/matic-save-blocks/blob/main/logs.png)
+
 ### Exit in the service
 ```
 Stop the service by typing 'ctrl' + 'c' on the keyboard.
