@@ -59,6 +59,7 @@ sudo apt install sqlite3
 
 ```
 sqlite3 database.db
+```
 
 ### 9 - Add the networks you want to monitor, the signer key and the query api url. Type .quit to exit sqlite3 application
 
