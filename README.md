@@ -45,7 +45,7 @@ python3 main.py
 ```
 ### If everything is working fine you will see records like these
 
-(https://github.com/Michel-Leidson/matic-save-blocks/blob/main/logs.png?raw=tru)
+(https://github.com/Michel-Leidson/matic-save-blocks/blob/main/logs.png?raw=true)
 
 ### Exit in the service
 ```
