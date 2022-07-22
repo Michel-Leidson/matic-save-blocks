@@ -76,9 +76,6 @@ sudo apt install screen
 
 ```
 screen
-```
-### run
-```
 python3 main.py
 ```
 ### If everything is working fine you will see records like these
