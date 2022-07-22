@@ -43,22 +43,6 @@ pip install -r requirements.txt
 ```
 python3 main.py
 ```
-### If everything is working fine you will see records like these
-```
-RUNNING PERSIST MISSED BLOCK 10187313 0x33cc92f536f7523ba52ae8eb8a162e1ab87f8285
-RUNNING PERSIST MISSED BLOCK 10187313 0x77ee14d1a9ba7130b686b736a316b5bf1d3ccb36
-RUNNING THREAD GET BLOCK DATA
-t=2022-07-19 14:03:20.806021 type=Info message=NETWORK_CHANGE_TO_BLOCK_10187314
-RUNNING GET NETWORK BLOCK DATA: 10187314
-t=2022-07-19 14:03:20.911371 type=Info message=CHARGING_VALIDATORS_FROM_DATABASE
-t=2022-07-19 14:03:20.911839 type=Info message=FINISH_CHARGE_NETWORKS_FROM_DATABASE
-'NoneType' object is not subscriptable
-'NoneType' object is not subscriptable
-RUNNING PERSIST MISSED BLOCK 10187314 0x33cc92f536f7523ba52ae8eb8a162e1ab87f8285
-RUNNING PERSIST MISSED BLOCK 10187314 0x77ee14d1a9ba7130b686b736a316b5bf1d3ccb36
-RUNNING THREAD GET BLOCK DATA
-t=2022-07-19 14:03:28.215604 type=Info message=NETWORK_CHANGE_TO_BLOCK_10187315
-```
 
 ### Exit in the service
 ```
@@ -97,6 +81,19 @@ screen
 ```
 python3 main.py
 ```
+### If everything is working fine you will see records like these
+```
+RUNNING PERSIST MISSED BLOCK 10187313 0x33cc92f536f7523ba52ae8eb8a162e1ab87f8285
+RUNNING PERSIST MISSED BLOCK 10187313 0x77ee14d1a9ba7130b686b736a316b5bf1d3ccb36
+RUNNING THREAD GET BLOCK DATA
+t=2022-07-19 14:03:20.806021 type=Info message=NETWORK_CHANGE_TO_BLOCK_10187314
+RUNNING GET NETWORK BLOCK DATA: 10187314
+t=2022-07-19 14:03:20.911371 type=Info message=CHARGING_VALIDATORS_FROM_DATABASE
+t=2022-07-19 14:03:20.911839 type=Info message=FINISH_CHARGE_NETWORKS_FROM_DATABASE
+'NoneType' object is not subscriptable
+'NoneType' object is not subscriptable
+```
+
 ### 12 - Exit screen session without closing
 
 
@@ -106,7 +103,6 @@ Type 'ctrl' + 'a' in keyboard, after type 'd'
 ### 13 - To generate the report just activate the python virtual environment again and run the report generation script
 
 ```
-pip install fpdf
 source venv/bin/activate
 ```
 ### Generating Blocks report
