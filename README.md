@@ -100,6 +100,10 @@ Type 'ctrl' + 'a' in keyboard, after type 'd'
 ### 13 - To generate the report just activate the python virtual environment again and run the report generation script
 
 ```
+mkdir output-reports
+```
+
+```
 source venv/bin/activate
 ```
 ### Generating Blocks report
