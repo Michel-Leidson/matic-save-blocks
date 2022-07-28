@@ -35,6 +35,18 @@ def has_checkpoint_in_db(checkpoint):
     
     return False
 
+def checkGapBlocks():
+    try:
+        blocks = getLastsBlocks()
+        for block in blocks:
+            isBlock = isUnsignedBlockByValidator(block,"Power")            
+            if isBlock == False:
+                persistGapBlock(block)
+                print("Put in gao unsigned blocks",block)
+
+    except Exception as e:
+        print(e)
+
 
 def delete_invalid_checkpoint(checkpoint_height):
     connection = sqlite3.connect('database.db')
@@ -97,9 +109,20 @@ def init_tables():
     validator_id INTEGER UNIQUE NOT NULL,
     signer VARCHAR(255) NOT NULL);
     '''
+
+    analysis_gap_unsigned_blocks_table = '''
+    CREATE TABLE IF NOT EXISTS  analysis_gap_unsigned_blocks
+    (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    block INTEGER NOT NULL,
+    analyzed BOOLEAN NOT NULL DEFAULT 0,
+    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updateAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
+    '''
     cursor.execute(blocks_table)
     cursor.execute(networks_table)
     cursor.execute(checkpoints_table)
+    cursor.execute(analysis_gap_unsigned_blocks_table)
     cursor.connection.commit()
     connection.close()
 
@@ -107,6 +130,100 @@ init_tables()
 
 def datetime_now():
     return str(datetime.datetime.now())
+
+def persistGapBlock(block):
+    try:
+        if isAnalysisGapUnsignedBlock(block)==False:
+            connection = sqlite3.connect('database.db')
+            cursor = connection.cursor()
+            cursor.execute("insert into analysis_gap_unsigned_blocks ( block,analyzed ) values ( ? , ? )", (block,0) )
+            cursor.connection.commit()
+            connection.close()
+    except Exception as e:
+        print(e)
+
+def markGapBlockAsAnalyzed(block):
+    try:        
+        connection = sqlite3.connect('database.db')
+        cursor = connection.cursor()
+        cursor.execute(f"""UPDATE analysis_gap_unsigned_blocks SET analyzed=1, updateAt='{datetime_now()}'  WHERE analyzed=0 AND block={block} """)
+        cursor.connection.commit()
+        connection.close()
+    except Exception as e:
+        print(e)
+
+def isAnalysisGapUnsignedBlock(block):
+    try:
+        connection = sqlite3.connect('database.db')
+        cursor = connection.cursor()
+        cursor.execute(f"""SELECT block FROM analysis_gap_unsigned_blocks WHERE block={block} AND analyzed=0""")
+        cursor.connection.commit()
+
+        rows = cursor.fetchall()
+
+        connection.close()
+        if len(rows) > 0:
+            return True
+        else:
+            return False
+
+    except Exception as e:
+        print(e)
+
+def isUnsignedBlockByValidator(block,validator_name):
+    try:
+        connection = sqlite3.connect('database.db')
+        cursor = connection.cursor()
+        cursor.execute(f"""SELECT block FROM blocks b,validators v WHERE b.signer=v.signer AND v.name ='{validator_name}' AND b.block={block} LIMIT 1""")
+        cursor.connection.commit()
+
+        rows = cursor.fetchall()
+
+        connection.close()
+        if len(rows) > 0:
+            return True
+        else:
+            return False
+
+    except Exception as e:
+        print(e)
+
+
+def getLastGapBlock():
+    
+    try:
+        connection = sqlite3.connect('database.db')
+        cursor = connection.cursor()
+        cursor.execute(f"""SELECT block FROM analysis_gap_unsigned_blocks WHERE analyzed=0 ORDER BY block DESC LIMIT 1""")
+        cursor.connection.commit()
+
+        rows = cursor.fetchall()
+
+        connection.close()
+        if len(rows) > 0:
+            return rows[0][0] 
+        else:
+            return None
+
+    except Exception as e:
+        print(e)
+
+def getLastsBlocks():
+    blocks = []
+    try:
+        connection = sqlite3.connect('database.db')
+        cursor = connection.cursor()
+        cursor.execute("SELECT DISTINCT block FROM blocks ORDER BY block DESC LIMIT 20")
+        cursor.connection.commit()
+
+        for block in cursor.fetchall():
+            blocks.append(block[0])
+        
+        connection.close()
+        return blocks       
+        
+    except Exception as e:
+        print(e)
 
 def persistCheckpoint(signer,checkpoint,signed_in):
     try:
@@ -309,6 +426,7 @@ class collectNetworkInfoDataThread(threading.Thread):
                     getBlockThread.start()         
             
                 time.sleep(1)
+                checkGapBlocks()
             except Exception as e:
                 print(e)
         print("| Finish Thread |")
@@ -344,13 +462,36 @@ class getPastCheckpoints(threading.Thread):
             tcheckpointpast.start()
             time.sleep(4)
             
+class revalidateUnsignedBlockThread(threading.Thread):
+    def __init__(self):
+        threading.Thread.__init__(self)
+        
 
+    def run(self):
+        print("| Start revalidateUnsignedBlock |")        
+        while True:
+            try:
+                blockToRevalidate=getLastGapBlock()
+                
+                if blockToRevalidate != None:
+                    markGapBlockAsAnalyzed(blockToRevalidate)
+                    print("Block to revalidate:",blockToRevalidate)
+                    print("Start revalidate block",blockToRevalidate)
+                    revalidatet = getNetworkBlockDataThread(blockToRevalidate)
+                    revalidatet.start()
+                    
+            except Exception as e:
+                print(e)
+            time.sleep(5)
 
 
 netthread = collectNetworkInfoDataThread(previous_checkpoint,previous_block)
 invalid_checkpoit_thread= checkInvalidCheckpoints(invalid_checkpoint_list)
 #t_get_past_checkpoint = getPastCheckpoints()
+revalidatethread = revalidateUnsignedBlockThread()
 
 netthread.start()
 invalid_checkpoit_thread.start()
 #t_get_past_checkpoint.start()
+revalidatethread.start()
+

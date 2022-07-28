@@ -1,9 +1,11 @@
 import csv
 import sqlite3
+import requests
   
   
 try:
-  
+    r = requests.get('https://heimdall.api.matic.network/checkpoints/count')
+    print(r.json())
     # Import csv and extract data
     with open('dummy_blocks.csv', 'r') as fin:
         dr = csv.DictReader(fin)
