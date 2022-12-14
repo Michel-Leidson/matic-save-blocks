@@ -156,9 +156,8 @@ sudo systemctl status matic-save-blocks
 ```
 
 ### 12 - Check application logs. If everything is working fine you will see records like these
+tail -f /var/log/matic-save-blocks-out.log
 ```
-
-**tail -f /var/log/matic-save-blocks-out.log**
 RUNNING PERSIST MISSED BLOCK 10187313 0x33cc92f536f7523ba52ae8eb8a162e1ab87f8285
 RUNNING PERSIST MISSED BLOCK 10187313 0x77ee14d1a9ba7130b686b736a316b5bf1d3ccb36
 RUNNING THREAD GET BLOCK DATA
