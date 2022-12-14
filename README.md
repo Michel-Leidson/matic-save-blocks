@@ -144,7 +144,7 @@ sudo enable matic-save-blocks
 
 ```
 sudo systemctl status matic-save-blocks
-● cosmos-save-blocks.service - Cosmos Save Blocks
+● matic-save-blocks.service - Matic Save Blocks
      Loaded: loaded (/etc/systemd/system/matic-save-blocks.service; enabled; vendor preset: enabled)
      Active: active (running) since Wed 2022-08-17 02:58:26 UTC; 3 days ago
    Main PID: 894191 (running-matic-)
