@@ -71,7 +71,7 @@ sqlite> .quit
 Create a running file
 
 ```
-nano running-cosmos-save-blocks.sh
+nano running-matic-save-blocks.sh
 ```
 
 Put this content in the file (replace '/your-absolute-path-to-project' with the absolute path where your project is)
