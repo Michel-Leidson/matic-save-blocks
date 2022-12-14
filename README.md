@@ -8,7 +8,7 @@ sudo apt update && sudo apt upgrade -y
 ### 1 - Download project
 
 ```
-git clone git@github.com:Michel-Leidson/matic-save-blocks.git
+git clone https://github.com/Michel-Leidson/matic-save-blocks.git
 ```
 
 ### Enter in directory
@@ -66,19 +66,96 @@ sqlite3 database.db
 sqlite> INSERT INTO validators (name,validator_id,signer) VALUES('StakePool',32,'0x02f70172f7f490653665c9bfac0666147c8af1f5');
 sqlite> .quit
 ```
-### 10 - Install screen
+### 10 - Create matic-save-blocks service file and running
+
+Create a running file
 
 ```
-sudo apt install screen
+nano running-cosmos-save-blocks.sh
 ```
 
-### 11 - Open screen session to let it run in background
+Put this content in the file (replace '/your-absolute-path-to-project' with the absolute path where your project is)
 
 ```
-screen
+#!/bin/bash
+
+cd /your-absolute-path-to-project/matic-save-blocks/
+source venv/bin/activate
 python3 main.py
 ```
-### If everything is working fine you will see records like these
+
+Make this script executable
+
+```
+chmod +x running-matic-save-blocks.sh
+```
+Create service file
+
+```
+nano /etc/systemd/system/matic-save-blocks.service
+```
+
+Put this content in the file (replace '/your-absolute-path-to-running-file' with the absolute path where your running file is)
+
+```
+[Unit]
+Description=Matic Save Blocks
+After=syslog.target network.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/your-absolute-path-to-running-file/running-matic-save-blocks.sh
+Restart=on-failure
+
+StandardOutput=append:/var/log/matic-save-blocks-out.log
+StandardError=append:/var/log/matic-save-blocks-err.log
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Create log files for service
+
+```
+cd /var/log
+touch matic-save-blocks-out.log
+touch matic-save-blocks-err.log
+```
+
+Reload service files
+
+```
+sudo systemctl daemon-reload
+```
+
+Start service
+
+```
+sudo service matic-save-blocks start
+```
+
+Enable start service in boot
+
+```
+sudo enable matic-save-blocks
+```
+### 11 - Verify status service
+
+```
+sudo systemctl status cosmos-save-blocks
+● cosmos-save-blocks.service - Cosmos Save Blocks
+     Loaded: loaded (/etc/systemd/system/matic-save-blocks.service; enabled; vendor preset: enabled)
+     Active: active (running) since Wed 2022-08-17 02:58:26 UTC; 3 days ago
+   Main PID: 894191 (running-matic-)
+      Tasks: 26 (limit: 19190)
+     Memory: 161.4M
+     CGroup: /system.slice/matic-save-blocks.service
+             ├─894191 /bin/bash /your-absolute-path-to-running-file/running-matic-save-blocks.sh
+             └─894195 python3 main.py
+```
+
+### 12 - Check application logs. If everything is working fine you will see records like these
 ```
 RUNNING PERSIST MISSED BLOCK 10187313 0x33cc92f536f7523ba52ae8eb8a162e1ab87f8285
 RUNNING PERSIST MISSED BLOCK 10187313 0x77ee14d1a9ba7130b686b736a316b5bf1d3ccb36
@@ -91,18 +168,13 @@ t=2022-07-19 14:03:20.911839 type=Info message=FINISH_CHARGE_NETWORKS_FROM_DATAB
 'NoneType' object is not subscriptable
 ```
 
-### 12 - Exit screen session without closing
-
-
-Type 'ctrl' + 'a' in keyboard, after type 'd'
-
-
 ### 13 - To generate the report just activate the python virtual environment again and run the report generation script
 
-```
-mkdir output-reports
-```
+Enter in your project directory
 
+```
+cd matic-save-blocks
+```
 ```
 source venv/bin/activate
 ```
