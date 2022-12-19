@@ -277,7 +277,7 @@ class getNetworkBlockDataThread(threading.Thread):
         print('RUNNING GET NETWORK BLOCK DATA: '+ str(self.block))
     
         
-        r = requests.get('https://heimdall.api.matic.network/blocks/'+str(self.block))
+        r = requests.get('https://heimdall-api.polygon.technology/blocks/'+str(self.block))
         signers = r.json()['block']['last_commit']['precommits']
         block_time = r.json()['block']['header']['time']
         #print(signers)
@@ -384,7 +384,7 @@ class collectNetworkInfoDataThread(threading.Thread):
         while(RUNNING_SCRIPT):  
             #GET LAST INFO FROM POLYGON NETWORK
             try:
-                r = requests.get('https://heimdall.api.matic.network/checkpoints/count')
+                r = requests.get('https://heimdall-api.polygon.technology/checkpoints/count')
                 last_checkpoint = r.json()['result']['result']           
                 last_block=r.json()['height']
                 
