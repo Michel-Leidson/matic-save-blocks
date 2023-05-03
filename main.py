@@ -311,7 +311,7 @@ class getNetworkCheckpointDataThread(threading.Thread):
 
     def run(self):
         print('RUNNING GET NETWORK CHECKPOINT DATA: '+ str(self.checkpoint))
-        r = requests.get('https://sentinel.matic.network/api/v2/monitor/checkpoint-signatures/checkpoint/'+str(self.checkpoint))
+        r = requests.get('https://staking-api.polygon.technology/api/v2/monitor/checkpoint-signatures/checkpoint/'+str(self.checkpoint))
         signers = r.json()['result']
         validators_db = charge_validators()
         validators_set = {}
@@ -335,7 +335,7 @@ class getNetworkCheckpointDataThread(threading.Thread):
                         try:
                             getFirstSigner=True
                             validatorId=validator['validator_id']
-                            url=f'''https://sentinel.matic.network/api/v2/validators/{validatorId}/checkpoints-signed?limit=1&offset=0'''
+                            url=f'''https://staking-api.polygon.technology/api/v2/validators/{validatorId}/checkpoints-signed?limit=1&offset=0'''
                             r2 = requests.get(url)
                             checkpointTime=r2.json()['result'][0]['timestamp']
                             checkpointTime=datetime.datetime.fromtimestamp(checkpointTime)
@@ -391,7 +391,7 @@ class collectNetworkInfoDataThread(threading.Thread):
                     
                 if self.previous_checkpoint < int(last_checkpoint):
 
-                    r3 = requests.get('https://sentinel.matic.network/api/v2/monitor/checkpoint-signatures/checkpoint/'+str(last_checkpoint))
+                    r3 = requests.get('https://staking-api.polygon.technology/api/v2/monitor/checkpoint-signatures/checkpoint/'+str(last_checkpoint))
                     signers = r3.json()['result']
                     checkpointsSignersNumber=0
                     for signer in signers:
